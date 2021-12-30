@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-28 07:10:41
-LastEditTime: 2021-12-29 06:58:26
+LastEditTime: 2021-12-30 08:43:51
 LastEditors: Please set LastEditors
 Description: Read the logical BRAM instance
 FilePath: /Aurora/read_circuit.py
@@ -17,7 +17,9 @@ import type
 
 # <port name="addr1">top^mesgRF_rWrPtr~8_FF_NODE top^mesgRF_rWrPtr~9_FF_NODE open open open open open</port>
 # For some address port, the "open" means invaild input pin. I will remove it when I count the pin's information.			
-Replace_key_word = "open"
+Replace_key_word_0 = "open"
+Replace_key_word_1 = "gnd"
+Replace_key_word_2 = "vcc"
 
 
 '''
@@ -52,8 +54,8 @@ def Parse4BRAMINF(Path_of_circuit, Handle_BRAMS):
             level_2 = child_node_l_1.find("inputs");
             level_3 = level_2.findall("port");
             # level_3 port_0:addr1 port_1:addr2     port_2:data     port_3:we1   port_4:we2 
-            Addr1_List = level_3[0].text.replace(Replace_key_word,"").split();
-            Addr2_List = level_3[1].text.replace(Replace_key_word,"").split();
+            Addr1_List = level_3[0].text.replace(Replace_key_word_0,"").replace(Replace_key_word_1,"").replace(Replace_key_word_2,"").split();
+            Addr2_List = level_3[1].text.replace(Replace_key_word_0,"").replace(Replace_key_word_1,"").replace(Replace_key_word_2,"").split();
             We1 = level_3[3].text;
             We2 = level_3[4].text;
             if (We1 != "gnd") and (We1 != "open") and (len(Addr1_List) != 0) :

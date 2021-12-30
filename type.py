@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 04:08:23
-LastEditTime: 2021-12-29 07:38:00
+LastEditTime: 2021-12-30 06:28:34
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/type.py
