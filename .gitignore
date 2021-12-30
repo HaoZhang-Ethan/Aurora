@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+Benchmark/
+vtr-verilog-to-routing-8.0.0/
+__pycache__/
