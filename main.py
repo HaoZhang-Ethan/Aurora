@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-28 07:10:41
-LastEditTime: 2021-12-30 08:54:40
+LastEditTime: 2022-01-02 06:04:35
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/main.py
@@ -52,6 +52,7 @@ for cur_circuit in circuit_name:
     Path_of_circuit = Benchmark_path + "/" + cur_circuit + ".v/common/"
     Path_of_circuit_net = Path_of_circuit  + cur_circuit + ".net"
     Path_of_circuit_act = Path_of_circuit + "output_activity"
+    Path_of_circuit_pin_act = Path_of_circuit  + cur_circuit + "_BRAMPin.txt"
     if my_exists(Path_of_circuit_net):
         Handle_BRAMS = type.BRAMS()
         read_circuit.Parse4BRAMINF(Path_of_circuit_net, Handle_BRAMS)
@@ -62,6 +63,10 @@ for cur_circuit in circuit_name:
         if my_exists(Path_of_circuit_act) is True: # For some cricuits, Init_Gen_ACT() fail to run.
             read_activate.Parse4ACT(Path_of_circuit_act, Handle_BRAMS)
             print("---------Parse4ACT OK---------")
+        # if my_exists(Path_of_circuit_pin_act) is True: # For some cricuits, Init_Gen_ACT() fail to run.
+        #     read_activate.Parse4PinACT(Path_of_circuit_pin_act, Handle_BRAMS)
+        #     print("---------Parse4ACT OK---------")
+        
         print("\n")
 
 pass
