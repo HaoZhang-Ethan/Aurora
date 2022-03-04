@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-28 07:10:41
-LastEditTime: 2021-12-30 08:43:51
+LastEditTime: 2022-03-04 08:51:53
 LastEditors: Please set LastEditors
 Description: Read the logical BRAM instance
 FilePath: /Aurora/read_circuit.py
