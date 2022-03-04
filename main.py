@@ -11,7 +11,7 @@ import read_activate
 import type
 import os
 
-Benchmark_path = "/home/zhlab/Aurora/Benchmark"
+Benchmark_path = "z/home/zhlab/Aurora/Benchmark"
 
 circuit_name = [tmp.replace(".v", "") for tmp in os.listdir(Benchmark_path)]
 
