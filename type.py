@@ -1,13 +1,14 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 04:08:23
-LastEditTime: 2022-03-04 08:52:41
+LastEditTime: 2022-03-06 21:33:52
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/type.py
 '''
 
-num_region = 8   # 
+num_region = 8      # MLC
+swap_region = 3     # SLC
 
 
 class BRAM:   
@@ -35,15 +36,18 @@ class BRAM:
         self.We2_act_list = 0
         self.Pos_x = 0
         self.Pos_y = 0
-        self.Current_sel = -1
-        self.Swap_p = -1 
+        self.Current_sel = [-1]*swap_region         # 当前谁在SLC区域
+        self.Swap_p = [-1]*swap_region              # 当前SLC区域指向谁
+        self.SLC_State = [0]*swap_region
+        self.Sel_Dict = dict()
+        self.Swap_Dict = dict()
         self.Num_subblock = 0
-        self.Counter = [0]*9           # counter of swap region if counter[9]
-        self.Condition_counter = [0]*9
-        self.Threshold = [5000,5000,5000,5000,5000,5000,5000,5000,5000000]
-        self.Up_limit = [5500,5500,5500,5500,5500,5500,5500,5500,5500000]
-        self.Freq_counter = [0]*9           # counter of swap region if counter[9]
-        self.Freq_Threshold = [275,275,275,275,275,275,275,275,2000000]
+        self.Counter = [0]*(num_region+swap_region)           # counter of swap region if counter[9]
+        self.Condition_counter = [0]*(num_region+swap_region) # 满足出发条件后被触发了多少次
+        self.Threshold = [5000]*num_region + [5000000]*swap_region
+        self.Up_limit = [5500]*num_region + [5500000]*swap_region
+        self.Freq_counter = [0]*(num_region+swap_region)             # counter of swap region if counter[9]
+        self.Freq_Threshold = [275]*num_region + [2000000]*swap_region
         
 
 

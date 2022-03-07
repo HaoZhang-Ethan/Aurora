@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-28 07:10:41
-LastEditTime: 2022-01-02 06:04:35
+LastEditTime: 2022-03-06 21:34:06
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/main.py
@@ -15,7 +15,7 @@ import os
 
 
 
-Benchmark_path = "/home/zhlab/Aurora/Benchmark"
+Benchmark_path = os.getcwd() + "/Benchmark"
 
 circuit_name = [tmp.replace(".v", "") for tmp in os.listdir(Benchmark_path)]
 
