@@ -1,3 +1,12 @@
+'''
+Author: HaoZhang-Hoge@SDU
+Date: 2021-12-29 04:08:23
+LastEditTime: 2022-03-08 03:05:17
+LastEditors: Please set LastEditors
+Description: 
+FilePath: /Aurora/type.py
+'''
+
 import random
 import math
 import type
@@ -74,25 +83,58 @@ def Read_Act(Handle_BRAMS):
                         Handle_BRAMS.Dict[tmp_i].Add_2_input[Handle_BRAMS.Dict[tmp_i].Add2[tmp_j]] = tmp_input_2
 
 
-def Choose_SLC(BRAM):
+def Select_SLC_strategy(BRAM,num_select):
     index_of_slc = 0
     for tmp_i in BRAM.SLC_State:
         if tmp_i == 0:
             return index_of_slc 
         index_of_slc += 1
-    
     # choose strategy  by frequence
-    Max_freq = -1
-    Max_freq_index = -1
+    tmp_dict = dict()
     for tmp_i in range(0,type.swap_region):
-        Real_freq = BRAM.Freq_counter[type.num_region+tmp_i] * BRAM.SLC_State[tmp_i]
-        if Real_freq > Max_freq:
-            Max_freq_index = tmp_i;
-    return Max_freq_index
+        if BRAM.MLC_State[tmp_i] == 1:
+            if BRAM.Freq_counter[tmp_i] >= BRAM.Freq_Threshold[tmp_i]:
+                tmp_dict[tmp_i] = BRAM.Freq_counter[tmp_i]
+    sorted_dict = sorted(tmp_dict.items(), key=lambda x: x[1])
+    index_list = []
+    freq_list = []
+    for tmp_j in range(0,num_select):
+        index_list.append(sorted_dict[tmp_j][0])
+        freq_list.append(sorted_dict[tmp_j][1])
+    return index_list,freq_list
+
 
 def Set_SLC_Sel_state(BRAM,Choosed_SLC,state):
     BRAM.SLC_State[Choosed_SLC] = state
-    
+def Set_MLC_Sel_state(BRAM,Choosed_MLC,state):
+    BRAM.MLC_State[Choosed_MLC] = state
+
+def Select_MLC_strategy(BRAM,num_select):
+    tmp_dict = dict()
+    for tmp_i in range(0,type.num_region):
+        if BRAM.MLC_State[tmp_i] == 1:
+            if BRAM.Freq_counter[tmp_i] >= BRAM.Freq_Threshold[tmp_i]:
+                tmp_dict[tmp_i] = BRAM.Freq_counter[tmp_i]
+    sorted_dict = sorted(tmp_dict.items(), key=lambda x: x[1], reverse=True)
+    index_list = []
+    freq_list = []
+    for tmp_j in range(0,num_select):
+        index_list.append(sorted_dict[tmp_j][0])
+        freq_list.append(sorted_dict[tmp_j][1])
+    return index_list,freq_list
+
+
+
+
+def Condition_Remaping(BRAM):
+    # TODO: coding    
+    # MLC condition
+    BRAM.Counter[tmp_j] > BRAM.Threshold[tmp_j]:
+    # TODO: conding
+    # SLC condition
+    return 0 
+
+
 
 def Sim_BRAM(Handle_BRAMS):
     Write_Counter = 0
@@ -119,6 +161,7 @@ def Sim_BRAM(Handle_BRAMS):
                         # Wear Out
                         if Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] > Handle_BRAMS.Dict[tmp_i].Up_limit[Sel_write]:
                             return Write_Counter, Swap_counter
+                # dual port
                 if Handle_BRAMS.Dict[tmp_i].Mode.find("sp") == -1:
                     if Handle_BRAMS.Dict[tmp_i].We2_input[tmp_k] == 1:
                         tmp_str = ""
@@ -126,14 +169,14 @@ def Sim_BRAM(Handle_BRAMS):
                             if Handle_BRAMS.Dict[tmp_i].Num_add_2 > int(math.log2(type.num_region)):
                                 tmp_str += str(Handle_BRAMS.Dict[tmp_i].Add_2_input[Handle_BRAMS.Dict[tmp_i].Add2[tmp_j]][tmp_k])
                         Sel_write = int(tmp_str,2)
-                        if Sel_write == Handle_BRAMS.Dict[tmp_i].Current_sel:
-                            Handle_BRAMS.Dict[tmp_i].Counter[8] += 1
+                        if Sel_write in Handle_BRAMS.Dict[tmp_i].Sel_Dict:
+                            num_crurrent_slc = type.num_region + Handle_BRAMS.Dict[tmp_i].Sel_Dict[Sel_write]
+                            Handle_BRAMS.Dict[tmp_i].Counter[num_crurrent_slc] += 1
                         else:
                             Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] += 1
-                            if Handle_BRAMS.Dict[tmp_i].Current_sel != -1:
-                                Handle_BRAMS.Dict[tmp_i].Freq_counter[Sel_write] += 1 
-            
-            
+                            # if Handle_BRAMS.Dict[tmp_i].Current_sel != -1:
+                            #     Handle_BRAMS.Dict[tmp_i].Freq_counter[Sel_write] += 1 
+
             for tmp_i in Handle_BRAMS.Dict:
                 for tmp_j in range(0,type.num_region):
                     if Handle_BRAMS.Dict[tmp_i].Counter[tmp_j] > Handle_BRAMS.Dict[tmp_i].Threshold[tmp_j]:
@@ -144,12 +187,13 @@ def Sim_BRAM(Handle_BRAMS):
                             # TODO: I forget the founction of the operation
                             # write due to swap
                             # Handle_BRAMS.Dict[tmp_i].Counter[Handle_BRAMS.Dict[tmp_i].Current_sel] += 1
-
-
-                            # which MLC is selected
-                            # Handle_BRAMS.Dict[tmp_i].Current_sel = tmp_j
-                            # which SLC is selected
-                            Choosed_SLC = Choose_SLC(Handle_BRAMS.Dict[tmp_i])
+                            if Condition_Remaping(Handle_BRAMS.Dict[tmp_i]):    
+                                # which MLC is selected
+                                slc_index_list, slc_freq_list = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i],2)
+                                # which SLC is selected
+                                mlc_index_list, mlc_freq_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],2)
+                                # Remapping
+                                # TODO: Remapping
                             if Handle_BRAMS.Dict[tmp_i].SLC_State[Choosed_SLC] == 1:
                                 last_value = Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choosed_SLC]
                                 Handle_BRAMS.Dict[tmp_i].Counter[last_value] += 1   # write back
@@ -169,11 +213,12 @@ def Sim_BRAM(Handle_BRAMS):
                             # write due to swap
                             # Handle_BRAMS.Dict[tmp_i].Counter[Handle_BRAMS.Dict[tmp_i].Current_sel] += 1
 
-
+                            Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i])
                             tmp_j = Handle_BRAMS.Dict[tmp_i].Freq_counter.index(max(Handle_BRAMS.Dict[tmp_i].Freq_counter))
                             # Handle_BRAMS.Dict[tmp_i].Current_sel = tmp_j
-                            Choosed_SLC = Choose_SLC(Handle_BRAMS.Dict[tmp_i])
+                            Choosed_SLC = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i])
                             Set_SLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choosed_SLC,1)
+                            Set_MLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choosed_SLC,1)
                             if Handle_BRAMS.Dict[tmp_i].SLC_State[Choosed_SLC] == 1:
                                 last_value = Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choosed_SLC]
                                 Handle_BRAMS.Dict[tmp_i].Counter[last_value] += 1   # write back
