@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-28 07:10:41
-LastEditTime: 2022-03-06 21:34:06
+LastEditTime: 2022-03-09 04:07:22
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/main.py
@@ -67,10 +67,10 @@ for cur_circuit in circuit_name:
         if my_exists(Path_of_circuit_act) is False:
             Init_Gen_ACT(Path_of_circuit, cur_circuit)
             print("---------Gen_ACT OK---------")
-        if my_exists(Path_of_circuit_act) is True: # For some cricuits, Init_Gen_ACT() fail to run.
+        if my_exists(Path_of_circuit_act) is True: # For some circuits, Init_Gen_ACT() fail to run.
             read_activate.Parse4ACT(Path_of_circuit_act, Handle_BRAMS)
             print("---------Parse4ACT OK---------")
-        # if my_exists(Path_of_circuit_pin_act) is True: # For some cricuits, Init_Gen_ACT() fail to run.
+        # if my_exists(Path_of_circuit_pin_act) is True: # For some circuits, Init_Gen_ACT() fail to run.
         #     read_activate.Parse4PinACT(Path_of_circuit_pin_act, Handle_BRAMS)
         #     print("---------Parse4ACT OK---------")
         # simulator.Init_Sim_BRAM(Handle_BRAMS,Path_of_circuit_place)

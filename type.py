@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 04:08:23
-LastEditTime: 2022-03-08 04:32:21
+LastEditTime: 2022-03-09 04:06:00
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/type.py
@@ -13,6 +13,13 @@ from typing import Counter
 num_region = 8      # MLC
 swap_region = 3     # SLC
 
+# 32K Bit 512x64
+organize_mem_row = 512
+organize_mem_col = 64
+subblock_row = int(organize_mem_row/num_region)
+subblock_col = organize_mem_col
+
+
 Lifetime = math.pow(10,5)
 Counter_bit = math.ceil(math.log2(Lifetime))
 if Counter_bit <=5:
@@ -23,7 +30,7 @@ Accuracy_bit = 3   # 1--50%  2--25%  3--12.5%   4--6.25%    5--3.125%
 Accuracy_bit_Aid =  Counter_bit - Freq_Acc - Accuracy_bit 
 Counter_high_bit = Counter_bit - Accuracy_bit_Aid - Accuracy_bit
 
-class BRAM:   
+class BRAM:
     def _init_(self, name, instance, mode, add1, add2, we1, we2):
         self.Name = name
         self.Instance = instance
@@ -56,9 +63,10 @@ class BRAM:
         self.Swap_Dict = dict()
         self.Num_subblock = 0
         # self.Lifetime_Counter = [0]*(num_region+swap_region)           # counter of swap region if counter[9]
-        # Counter 记录实际寿命
+        # Counter 记录实际寿命 只记录SLC的
+        self.Counter_Cell_level = [[0]*subblock_row*organize_mem_col]*num_region
         
-        self.Condition_counter = [0]*(num_region+swap_region) # 满足出发条件后被触发了多少次
+        self.Condition_counter = [0]*(num_region+swap_region) # 满足出发条件后被触发了多少次  TODO: Del
         self.Threshold = [5000]*num_region + [5000000]*swap_region
         self.Up_limit = [5500]*num_region + [5500000]*swap_region
         self.Accuracy_counter = [0]*(num_region+swap_region)
@@ -68,7 +76,7 @@ class BRAM:
         self.Freq_counter = [0]*(num_region+swap_region)             # counter of swap region if counter[9]
         self.Freq_Threshold = [int(math.pow(2,Frequency_bit))]*num_region + [1000*int(math.pow(2,Frequency_bit))]*swap_region
         self.Counter_high = [0]*(num_region+swap_region) # Counter的高位
-        self.Counter_high_Threshold = 
+        self.Counter_high_Threshold = [int(math.pow(2,Counter_high_bit))]*num_region + [1000*int(math.pow(2,Counter_high_bit))]*swap_region 
         # |XXXXXXXXXXXXXXXXXXXXXXXXXXX|XXXXXXXXXXXXXXXXX|XXXXXXXXXXXXXXXXXX|
         # |          high bit      |            frequency bit              |
 

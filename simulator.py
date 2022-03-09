@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 04:08:23
-LastEditTime: 2022-03-08 03:05:17
+LastEditTime: 2022-03-09 04:07:39
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/type.py
@@ -89,7 +89,7 @@ def Select_SLC_strategy(BRAM,num_select):
         if tmp_i == 0:
             return index_of_slc 
         index_of_slc += 1
-    # choose strategy  by frequence
+    # choose strategy  by frequency
     tmp_dict = dict()
     for tmp_i in range(0,type.swap_region):
         if BRAM.MLC_State[tmp_i] == 1:
@@ -104,10 +104,10 @@ def Select_SLC_strategy(BRAM,num_select):
     return index_list,freq_list
 
 
-def Set_SLC_Sel_state(BRAM,Choosed_SLC,state):
-    BRAM.SLC_State[Choosed_SLC] = state
-def Set_MLC_Sel_state(BRAM,Choosed_MLC,state):
-    BRAM.MLC_State[Choosed_MLC] = state
+def Set_SLC_Sel_state(BRAM,Choose_SLC,state):
+    BRAM.SLC_State[Choose_SLC] = state
+def Set_MLC_Sel_state(BRAM,Choose_MLC,state):
+    BRAM.MLC_State[Choose_MLC] = state
 
 def Select_MLC_strategy(BRAM,num_select):
     tmp_dict = dict()
@@ -129,7 +129,7 @@ def Select_MLC_strategy(BRAM,num_select):
 def Condition_Remaping(BRAM):
     # TODO: coding    
     # MLC condition
-    BRAM.Counter[tmp_j] > BRAM.Threshold[tmp_j]:
+    # BRAM.Counter[tmp_j] > BRAM.Threshold[tmp_j]:
     # TODO: conding
     # SLC condition
     return 0 
@@ -151,10 +151,10 @@ def Sim_BRAM(Handle_BRAMS):
                         tmp_str += str(Handle_BRAMS.Dict[tmp_i].Add_1_input[Handle_BRAMS.Dict[tmp_i].Add1[tmp_j]][tmp_k])
                     Sel_write = int(tmp_str,2)
                     if  Sel_write in Handle_BRAMS.Dict[tmp_i].Sel_Dict:
-                        num_crurrent_slc = type.num_region + Handle_BRAMS.Dict[tmp_i].Sel_Dict[Sel_write]
-                        Handle_BRAMS.Dict[tmp_i].Counter[num_crurrent_slc] += 1
+                        num_current_slc = type.num_region + Handle_BRAMS.Dict[tmp_i].Sel_Dict[Sel_write]
+                        Handle_BRAMS.Dict[tmp_i].Counter[num_current_slc] += 1
                         # Wear Out
-                        if Handle_BRAMS.Dict[tmp_i].Counter[num_crurrent_slc] > Handle_BRAMS.Dict[tmp_i].Up_limit[num_crurrent_slc]:
+                        if Handle_BRAMS.Dict[tmp_i].Counter[num_current_slc] > Handle_BRAMS.Dict[tmp_i].Up_limit[num_current_slc]:
                             return Write_Counter, Swap_counter
                     else:
                         Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] += 1
@@ -170,8 +170,8 @@ def Sim_BRAM(Handle_BRAMS):
                                 tmp_str += str(Handle_BRAMS.Dict[tmp_i].Add_2_input[Handle_BRAMS.Dict[tmp_i].Add2[tmp_j]][tmp_k])
                         Sel_write = int(tmp_str,2)
                         if Sel_write in Handle_BRAMS.Dict[tmp_i].Sel_Dict:
-                            num_crurrent_slc = type.num_region + Handle_BRAMS.Dict[tmp_i].Sel_Dict[Sel_write]
-                            Handle_BRAMS.Dict[tmp_i].Counter[num_crurrent_slc] += 1
+                            num_current_slc = type.num_region + Handle_BRAMS.Dict[tmp_i].Sel_Dict[Sel_write]
+                            Handle_BRAMS.Dict[tmp_i].Counter[num_current_slc] += 1
                         else:
                             Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] += 1
                             # if Handle_BRAMS.Dict[tmp_i].Current_sel != -1:
@@ -184,7 +184,7 @@ def Sim_BRAM(Handle_BRAMS):
                         # select strategy
                         # Condition for Prioritization
                         if Handle_BRAMS.Dict[tmp_i].Condition_counter[tmp_j] == 1:
-                            # TODO: I forget the founction of the operation
+                            # TODO: I forget the function of the operation
                             # write due to swap
                             # Handle_BRAMS.Dict[tmp_i].Counter[Handle_BRAMS.Dict[tmp_i].Current_sel] += 1
                             if Condition_Remaping(Handle_BRAMS.Dict[tmp_i]):    
@@ -194,41 +194,41 @@ def Sim_BRAM(Handle_BRAMS):
                                 mlc_index_list, mlc_freq_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],2)
                                 # Remapping
                                 # TODO: Remapping
-                            if Handle_BRAMS.Dict[tmp_i].SLC_State[Choosed_SLC] == 1:
-                                last_value = Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choosed_SLC]
+                            if Handle_BRAMS.Dict[tmp_i].SLC_State[Choose_SLC] == 1:
+                                last_value = Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choose_SLC]
                                 Handle_BRAMS.Dict[tmp_i].Counter[last_value] += 1   # write back
                                 del Handle_BRAMS.Dict[tmp_i].Sel_Dict[last_value]   # del relationship
-                                Set_SLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choosed_SLC,0)   # reset flag
-                                Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choosed_SLC] = -1     # reset flag
-                            Set_SLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choosed_SLC,1)
-                            Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choosed_SLC] = tmp_j
-                            Handle_BRAMS.Dict[tmp_i].Sel_Dict[tmp_j] = Choosed_SLC
+                                Set_SLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choose_SLC,0)   # reset flag
+                                Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choose_SLC] = -1     # reset flag
+                            Set_SLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choose_SLC,1)
+                            Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choose_SLC] = tmp_j
+                            Handle_BRAMS.Dict[tmp_i].Sel_Dict[tmp_j] = Choose_SLC
                             # write due to swap
-                            Handle_BRAMS.Dict[tmp_i].Counter[type.num_region + Choosed_SLC] += 1
+                            Handle_BRAMS.Dict[tmp_i].Counter[type.num_region + Choose_SLC] += 1
 
                             Swap_counter += 1
                             Handle_BRAMS.Dict[tmp_i].Freq_counter = [0]*(type.num_region+type.swap_region)
                         elif Handle_BRAMS.Dict[tmp_i].Condition_counter[tmp_j] > 1 and max(Handle_BRAMS.Dict[tmp_i].Freq_counter) > Handle_BRAMS.Dict[tmp_i].Freq_Threshold[Handle_BRAMS.Dict[tmp_i].Freq_counter.index(max(Handle_BRAMS.Dict[tmp_i].Freq_counter))]:
-                            # TODO: I forget the founction of the operation
+                            # TODO: I forget the function of the operation
                             # write due to swap
                             # Handle_BRAMS.Dict[tmp_i].Counter[Handle_BRAMS.Dict[tmp_i].Current_sel] += 1
 
                             Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i])
                             tmp_j = Handle_BRAMS.Dict[tmp_i].Freq_counter.index(max(Handle_BRAMS.Dict[tmp_i].Freq_counter))
                             # Handle_BRAMS.Dict[tmp_i].Current_sel = tmp_j
-                            Choosed_SLC = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i])
-                            Set_SLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choosed_SLC,1)
-                            Set_MLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choosed_SLC,1)
-                            if Handle_BRAMS.Dict[tmp_i].SLC_State[Choosed_SLC] == 1:
-                                last_value = Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choosed_SLC]
+                            Choose_SLC = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i])
+                            Set_SLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choose_SLC,1)
+                            Set_MLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choose_SLC,1)
+                            if Handle_BRAMS.Dict[tmp_i].SLC_State[Choose_SLC] == 1:
+                                last_value = Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choose_SLC]
                                 Handle_BRAMS.Dict[tmp_i].Counter[last_value] += 1   # write back
                                 del Handle_BRAMS.Dict[tmp_i].Sel_Dict[last_value]   # del relationship
-                                Set_SLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choosed_SLC,0)   # reset flag
-                                Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choosed_SLC] = -1     # reset flag
-                            Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choosed_SLC] = tmp_j
-                            Handle_BRAMS.Dict[tmp_i].Sel_Dict[tmp_j] = Choosed_SLC
+                                Set_SLC_Sel_state(Handle_BRAMS.Dict[tmp_i],Choose_SLC,0)   # reset flag
+                                Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choose_SLC] = -1     # reset flag
+                            Handle_BRAMS.Dict[tmp_i].Swap_Dict[Choose_SLC] = tmp_j
+                            Handle_BRAMS.Dict[tmp_i].Sel_Dict[tmp_j] = Choose_SLC
                             # write due to swap
-                            Handle_BRAMS.Dict[tmp_i].Counter[type.num_region + Choosed_SLC] += 1
+                            Handle_BRAMS.Dict[tmp_i].Counter[type.num_region + Choose_SLC] += 1
                             Swap_counter += 1
                             Handle_BRAMS.Dict[tmp_i].Freq_counter = [0]*(type.num_region+type.swap_region)  # map the current region to the swap region
     
