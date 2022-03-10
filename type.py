@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 04:08:23
-LastEditTime: 2022-03-09 04:06:00
+LastEditTime: 2022-03-10 08:28:18
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/type.py
@@ -11,11 +11,13 @@ import math
 from typing import Counter
 
 num_region = 8      # MLC
+region_add_bit = int(math.log2(num_region))
 swap_region = 3     # SLC
 
 # 32K Bit 512x64
 organize_mem_row = 512
 organize_mem_col = 64
+subblock_row_add_bit = int(math.log2(organize_mem_row/num_region))
 subblock_row = int(organize_mem_row/num_region)
 subblock_col = organize_mem_col
 
@@ -31,10 +33,12 @@ Accuracy_bit_Aid =  Counter_bit - Freq_Acc - Accuracy_bit
 Counter_high_bit = Counter_bit - Accuracy_bit_Aid - Accuracy_bit
 
 class BRAM:
-    def _init_(self, name, instance, mode, add1, add2, we1, we2):
+    def _init_(self, name, instance, mode, add1, add2, we1, we2, address_bit, data_bit):
         self.Name = name
         self.Instance = instance
         self.Mode = mode
+        self.Address_bit = address_bit
+        self.Data_bit = data_bit
         self.Add1 = add1
         self.Num_add_1 = len(self.Add1)
         self.Add_1_input = dict()
@@ -63,8 +67,8 @@ class BRAM:
         self.Swap_Dict = dict()
         self.Num_subblock = 0
         # self.Lifetime_Counter = [0]*(num_region+swap_region)           # counter of swap region if counter[9]
-        # Counter 记录实际寿命 只记录SLC的
-        self.Counter_Cell_level = [[0]*subblock_row*organize_mem_col]*num_region
+        # Counter 记录实际寿命 只记录MLC的
+        self.Counter_Cell_level = [[0]*subblock_row*subblock_col]*num_region
         
         self.Condition_counter = [0]*(num_region+swap_region) # 满足出发条件后被触发了多少次  TODO: Del
         self.Threshold = [5000]*num_region + [5000000]*swap_region

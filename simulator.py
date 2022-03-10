@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 04:08:23
-LastEditTime: 2022-03-09 04:07:39
+LastEditTime: 2022-03-10 09:24:24
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/type.py
@@ -130,9 +130,29 @@ def Condition_Remaping(BRAM):
     # TODO: coding    
     # MLC condition
     # BRAM.Counter[tmp_j] > BRAM.Threshold[tmp_j]:
-    # TODO: conding
+    # TODO: coding
     # SLC condition
     return 0 
+
+def Memory_write(BRAM,Address,Port_Add_bit):
+    # format the address
+    if BRAM.Address_bit == Port_Add_bit:
+        pass
+    else:
+        for tmp_i in range(0,BRAM.Address_bit - Port_Add_bit):
+            Address = Address + "0"    # connect the gnd
+
+    
+    # find subblock
+    subblock_address = Address[0:type.region_add_bit]
+    subblock_id = int(subblock_address,2)
+    # find memory cell
+    # Row
+    Intra_subblock_address_row = Address[type.region_add_bit:type.region_add_bit+type.subblock_row_add_bit]
+    # Col
+    Intra_subblock_address_col = Address[type.region_add_bit+type.subblock_row_add_bit:]
+    base = int(math.pow(2,int(math.log2(BRAM.Data_bit))))
+    return 0
 
 
 

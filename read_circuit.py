@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-28 07:10:41
-LastEditTime: 2022-03-04 08:51:53
+LastEditTime: 2022-03-10 03:07:35
 LastEditors: Please set LastEditors
 Description: Read the logical BRAM instance
 FilePath: /Aurora/read_circuit.py
@@ -13,6 +13,7 @@ FilePath: /Aurora/read_circuit.py
 import os
 import xml.etree.ElementTree as ET
 import type
+import math
 
 
 # <port name="addr1">top^mesgRF_rWrPtr~8_FF_NODE top^mesgRF_rWrPtr~9_FF_NODE open open open open open</port>
@@ -71,7 +72,10 @@ def Parse4BRAMINF(Path_of_circuit, Handle_BRAMS):
                     Writer_Set.add(tmp)
                     # Writer.write(tmp+"\n");
             Handle_BRAMS.Dict[Instance] = type.BRAM()
-            Handle_BRAMS.Dict[Instance]._init_(name = Name, instance = Instance, mode = Mode, add1 = Addr1_List, add2 = Addr2_List, we1 = We1, we2 = We2)
+            Mode_list = Mode.replace("x"," ").replace("_"," ").split()
+            Real_add_bit = int(math.log2(int(Mode_list[1])))
+            Real_data_bit = int(Mode_list[2])
+            Handle_BRAMS.Dict[Instance]._init_(name = Name, instance = Instance, mode = Mode, add1 = Addr1_List, add2 = Addr2_List, we1 = We1, we2 = We2, address_bit = Real_add_bit, data_bit = Real_data_bit)
 
     '''
     description: Save the vaild pin of BRAM 
