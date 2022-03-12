@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 04:08:23
-LastEditTime: 2022-03-10 08:28:18
+LastEditTime: 2022-03-11 22:11:21
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/type.py
@@ -17,6 +17,7 @@ swap_region = 3     # SLC
 # 32K Bit 512x64
 organize_mem_row = 512
 organize_mem_col = 64
+address_bit = int(math.log2(organize_mem_row))+int(math.log2(organize_mem_col))
 subblock_row_add_bit = int(math.log2(organize_mem_row/num_region))
 subblock_row = int(organize_mem_row/num_region)
 subblock_col = organize_mem_col
@@ -59,28 +60,28 @@ class BRAM:
         self.We2_act_list = 0
         self.Pos_x = 0
         self.Pos_y = 0
-        self.Current_sel = [-1]*swap_region         # 当前谁在SLC区域
-        self.Swap_p = [-1]*swap_region              # 当前SLC区域指向谁
-        self.MLC_State = [1]*num_region             # 当前MLC状态 0表示未被使用(为SLC模式) 1表示对应编号的subblock是MLC的
-        self.SLC_State = [0]*swap_region            # 当前SLC状态 0表示未被使用
-        self.Sel_Dict = dict()
-        self.Swap_Dict = dict()
+        self.Current_sel = [-1 for i in range (swap_region)]         # 当前谁在SLC区域
+        self.Swap_p = [-1 for i in range (swap_region)]              # 当前SLC区域指向谁
+        self.MLC_State = [1 for i in range (num_region)]             # 当前MLC状态 0表示未被使用(为SLC模式) 1表示对应编号的subblock是MLC的
+        self.SLC_State = [0 for i in range (swap_region)]            # 当前SLC状态 0表示未被使用
+        self.Sel_Dict = dict()                      # [SLC] -- MLC
+        self.Swap_Dict = dict()                     # [MLC] -- SLC
         self.Num_subblock = 0
         # self.Lifetime_Counter = [0]*(num_region+swap_region)           # counter of swap region if counter[9]
         # Counter 记录实际寿命 只记录MLC的
-        self.Counter_Cell_level = [[0]*subblock_row*subblock_col]*num_region
+        self.Counter_Cell_level = [[[0 for i in range (subblock_col)]for j in range (subblock_row)] for k in range (num_region)]
         
-        self.Condition_counter = [0]*(num_region+swap_region) # 满足出发条件后被触发了多少次  TODO: Del
-        self.Threshold = [5000]*num_region + [5000000]*swap_region
-        self.Up_limit = [5500]*num_region + [5500000]*swap_region
-        self.Accuracy_counter = [0]*(num_region+swap_region)
-        self.Accuracy_Threshold = [int(math.pow(2,Accuracy_bit))]*num_region + [1000*int(math.pow(2,Accuracy_bit))]*swap_region
-        self.Accuracy_Aid_counter = [0]*(num_region+swap_region)
-        self.Accuracy_Aid_Threshold = [int(math.pow(2,Accuracy_bit_Aid))]*num_region + [1000*int(math.pow(2,Accuracy_bit_Aid))]*swap_region
-        self.Freq_counter = [0]*(num_region+swap_region)             # counter of swap region if counter[9]
-        self.Freq_Threshold = [int(math.pow(2,Frequency_bit))]*num_region + [1000*int(math.pow(2,Frequency_bit))]*swap_region
-        self.Counter_high = [0]*(num_region+swap_region) # Counter的高位
-        self.Counter_high_Threshold = [int(math.pow(2,Counter_high_bit))]*num_region + [1000*int(math.pow(2,Counter_high_bit))]*swap_region 
+        self.Condition_counter = [0 for i in range (num_region+swap_region)] # 满足出发条件后被触发了多少次  TODO: Del
+        # self.Threshold = [5000]*num_region + [5000000]*swap_region
+        # self.Up_limit = [5500]*num_region + [5500000]*swap_region
+        self.Accuracy_counter = [0 for i in range (num_region+swap_region)]
+        self.Accuracy_Threshold = [int(math.pow(2,Accuracy_bit))  for i in range (num_region)] + [1000*int(math.pow(2,Accuracy_bit)) for i in range (swap_region)]
+        self.Accuracy_Aid_counter = [0 for i in range (num_region+swap_region)]
+        self.Accuracy_Aid_Threshold = [int(math.pow(2,Accuracy_bit_Aid)) for i in range (num_region)] + [1000*int(math.pow(2,Accuracy_bit_Aid)) for i in range (swap_region)]
+        self.Freq_counter = [0 for i in range (num_region+swap_region)]             # counter of swap region if counter[9]
+        self.Freq_Threshold = [int(math.pow(2,Frequency_bit)) for i in range (num_region)] + [1000*int(math.pow(2,Frequency_bit)) for i in range (swap_region)]
+        self.Counter_high = [0 for i in range (num_region+swap_region)] # Counter的高位
+        self.Counter_high_Threshold = [int(math.pow(2,Counter_high_bit)) for i in range (num_region)] + [1000*int(math.pow(2,Counter_high_bit)) for i in range (swap_region)]
         # |XXXXXXXXXXXXXXXXXXXXXXXXXXX|XXXXXXXXXXXXXXXXX|XXXXXXXXXXXXXXXXXX|
         # |          high bit      |            frequency bit              |
 

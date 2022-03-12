@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-28 07:10:41
-LastEditTime: 2022-03-10 02:57:26
+LastEditTime: 2022-03-12 02:09:45
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/main.py
@@ -74,10 +74,10 @@ for cur_circuit in circuit_name:
         #     read_activate.Parse4PinACT(Path_of_circuit_pin_act, Handle_BRAMS)
         #     print("---------Parse4ACT OK---------")
         # simulator.Init_Sim_BRAM(Handle_BRAMS,Path_of_circuit_place)
-        Lifetime,Swap_num = simulator.Sim_BRAM(Handle_BRAMS)
+        Lifetime, Remapping_num, Trigger_num = simulator.Sim_BRAM(Handle_BRAMS)
         # Lifetime,Swap_num = simulator.Sim_BRAM_FIFO(Handle_BRAMS)
         # Lifetime,Swap_num = simulator.Sim_BRAM_Non(Handle_BRAMS)
-        print("Lifetime = " + str(Lifetime) + "\t","Swap_num = " + str(Swap_num) + "\n")
+        print("Lifetime = " + str(Lifetime) + "\t" + "Remap_num = " + str(Remapping_num) + "\t Trigging_num = " + str(Trigger_num) + "\n")
         print("\n")
 
 pass
