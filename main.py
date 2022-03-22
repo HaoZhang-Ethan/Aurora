@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-28 07:10:41
-LastEditTime: 2022-03-12 02:09:45
+LastEditTime: 2022-03-22 09:04:56
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/main.py
@@ -15,11 +15,19 @@ import os
 
 
 
+
 Benchmark_path = os.getcwd() + "/Benchmark"
+Root_path = os.getcwd()
+# circuit_name = [tmp.replace(".v", "") for tmp in os.listdir(Benchmark_path)]
 
-circuit_name = [tmp.replace(".v", "") for tmp in os.listdir(Benchmark_path)]
+error = [2,3,5]
+tasks = [5]
+circuit_name = ["ch_intrinsics", "LU8PEEng", "mkDelayWorker32B", "mkPktMerge", "mkSMAdapter4B", "or1200"]
+magnification = [200, 10, 10, 10, 10, 900]
 
 
+Strategy = ["Baseline","Our","FIFO"]
+Strategy_Sel = 0
 
 def my_exists(path):
     if path.find(".net") != -1:
@@ -44,16 +52,18 @@ def my_exists(path):
 def Init_Gen_ACT(path, cur_circuit):
     os.chdir(path)
     # print(os.getcwd())
-    command = "cp /home/embed2/Aurora-main/vtr-verilog-to-routing-8.0.0/build/ODIN_II/odin_II " + path
+    command = "cp "+ Root_path + "/vtr-verilog-to-routing-8.0.0/build/ODIN_II/odin_II " + path
     os.system(command)
     command = "./odin_II " + "-b " + cur_circuit + ".odin.blif" + " -g 100 -U1"
     os.system(command)
-    
+
+def Set_BRAM_amp(Handle_BRAMS,amp):
+    for tmp_i in Handle_BRAMS.Dict:
+        Handle_BRAMS.Dict[tmp_i].amp = amp
 
 
-                    
-
-for cur_circuit in circuit_name:
+for cur_tasks in tasks:
+    cur_circuit = circuit_name[cur_tasks]
     print("Process for " + cur_circuit)
     Path_of_circuit = Benchmark_path + "/" + cur_circuit + ".v/common/"
     Path_of_circuit_net = Path_of_circuit  + cur_circuit + ".net"
@@ -74,6 +84,7 @@ for cur_circuit in circuit_name:
         #     read_activate.Parse4PinACT(Path_of_circuit_pin_act, Handle_BRAMS)
         #     print("---------Parse4ACT OK---------")
         # simulator.Init_Sim_BRAM(Handle_BRAMS,Path_of_circuit_place)
+        Set_BRAM_amp(Handle_BRAMS,magnification[cur_tasks])
         Lifetime, Remapping_num, Trigger_num = simulator.Sim_BRAM(Handle_BRAMS)
         # Lifetime,Swap_num = simulator.Sim_BRAM_FIFO(Handle_BRAMS)
         # Lifetime,Swap_num = simulator.Sim_BRAM_Non(Handle_BRAMS)

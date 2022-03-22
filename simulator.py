@@ -1,15 +1,17 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 04:08:23
-LastEditTime: 2022-03-12 02:07:25
+LastEditTime: 2022-03-22 09:03:37
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/type.py
 '''
 
+
 import random
 import math
 import type
+
 
 
 def Init_Sim_BRAM(Handle_BRAMS,Path_of_circuit_place):
@@ -97,10 +99,26 @@ def Select_SLC_strategy(BRAM):
     tmp_dict = dict()
     for tmp_i in range(0,type.swap_region):
         if BRAM.SLC_State[tmp_i] == 1:
-            tmp_dict[tmp_i] = BRAM.Freq_counter[tmp_i]/(1-(Calculate_Wear(BRAM.Counter_high[BRAM.Swap_Dict(tmp_i)],BRAM.Accuracy_counter[BRAM.Swap_Dict(tmp_i)])/type.Lifetime))
+            tmp_dict[tmp_i] = BRAM.Freq_counter[tmp_i]/(1-(Calculate_Wear(BRAM.Counter_high[BRAM.Swap_Dict[tmp_i]],BRAM.Accuracy_counter[BRAM.Swap_Dict[tmp_i]])/type.MLC_Lifetime))
         else:
             tmp_dict[tmp_i] = 0
     sorted_dict = sorted(tmp_dict.items(), key=lambda x: x[1])
+    index_list = []
+    cost_list = []
+    for tmp_j in range(0,len(sorted_dict)):
+        index_list.append(sorted_dict[tmp_j][0])
+        cost_list.append(sorted_dict[tmp_j][1])
+    return index_list,cost_list
+
+
+def Select_SLC_strategy_FIFO(BRAM):
+    tmp_dict = dict()
+    for tmp_i in range(0,type.swap_region):
+        if BRAM.SLC_State[tmp_i] == 1:
+            tmp_dict[tmp_i] = BRAM.Priority[tmp_i]
+        else:
+            tmp_dict[tmp_i] = -1
+    sorted_dict = sorted(tmp_dict.items(), key=lambda x: x[1], reverse=True)
     index_list = []
     cost_list = []
     for tmp_j in range(0,len(sorted_dict)):
@@ -121,7 +139,7 @@ def Select_MLC_strategy(BRAM,Threshold):
     for tmp_i in range(0,type.num_region):
         if BRAM.MLC_State[tmp_i] == 1:
             if BRAM.Freq_counter[tmp_i] >= T_select:
-                tmp_dict[tmp_i] = BRAM.Freq_counter[tmp_i]/(1-(Calculate_Wear(BRAM.Counter_high[tmp_i],BRAM.Accuracy_counter[tmp_i])/type.Lifetime))
+                tmp_dict[tmp_i] = BRAM.Freq_counter[tmp_i]/(1-(Calculate_Wear(BRAM.Counter_high[tmp_i],BRAM.Accuracy_counter[tmp_i])/type.MLC_Lifetime))
     sorted_dict = sorted(tmp_dict.items(), key=lambda x: x[1], reverse=True)
     index_list = []
     cost_list = []
@@ -133,15 +151,15 @@ def Select_MLC_strategy(BRAM,Threshold):
     return index_list,cost_list
 
 def BRAM_counter(BRAM, index):
-    BRAM.Freq_counter[index] += 1
-    BRAM.Accuracy_Aid_counter[index] += 1
-    if BRAM.Accuracy_Aid_counter[index] > BRAM.Accuracy_Aid_Threshold[index]:
+    BRAM.Freq_counter[index] += 1*BRAM.amp
+    BRAM.Accuracy_Aid_counter[index] += 1*BRAM.amp
+    if BRAM.Accuracy_Aid_counter[index] >= BRAM.Accuracy_Aid_Threshold[index]:
         BRAM.Accuracy_counter[index] += 1
         BRAM.Accuracy_Aid_counter[index] = 0
-        if BRAM.Accuracy_counter[index] > BRAM.Accuracy_Threshold[index]:
+        if BRAM.Accuracy_counter[index] >= BRAM.Accuracy_Threshold[index]:
            BRAM.Accuracy_counter[index] = 0
            BRAM.Counter_high[index] += 1
-           if BRAM.Counter_high[index] > BRAM.Counter_high_Threshold[index]:
+           if BRAM.Counter_high[index] >= BRAM.Counter_high_Threshold[index]:
                 BRAM.Counter_high[index] -= 1
     if BRAM.Freq_counter[index] > BRAM.Freq_Threshold[index]:
         return True
@@ -151,7 +169,7 @@ def BRAM_counter(BRAM, index):
 def Remaping(BRAM, SLC_index_list, SLC_cost_list, MLC_index_list, MLC_cost_list):
     remapping_num = 0
     min_len = min(len(SLC_index_list),len(MLC_index_list))
-    if (min_len > 1):
+    if (min_len >= 1):
         BRAM.Freq_counter = [0 for i in range (type.num_region+type.swap_region)]
     for tmp_i in range(0,min_len):
         if SLC_cost_list[tmp_i] < MLC_cost_list[tmp_i]:
@@ -172,6 +190,36 @@ def Remaping(BRAM, SLC_index_list, SLC_cost_list, MLC_index_list, MLC_cost_list)
     return remapping_num
 
 
+
+def FIFO_Priority_update(BRAM,SLC_id):
+    BRAM.Priority[SLC_id] += 1
+    if BRAM.Priority[SLC_id] >= BRAM.Priority_Threshold[SLC_id]:
+        BRAM.Priority[SLC_id] = 0
+    
+    
+
+def Remaping_FIFO(BRAM, SLC_index_list, SLC_cost_list, MLC_index_list, MLC_cost_list):
+    remapping_num = 0
+    BRAM.Freq_counter = [0 for i in range (type.num_region+type.swap_region)]
+    FIFO_Priority_update(BRAM,SLC_index_list[0])
+    remapping_num += 1
+    if BRAM.SLC_State[SLC_index_list[0]] == 1: # if the SLC is used
+        last_value = BRAM.Swap_Dict[SLC_index_list[0]]
+        Set_MLC_Sel_state(BRAM, last_value, 1)
+        BRAM_counter(BRAM,last_value) # write back
+        del BRAM.Sel_Dict[last_value]   # del relationship
+        Set_SLC_Sel_state(BRAM,SLC_index_list[0],0)   # reset flag
+        BRAM.Swap_Dict[SLC_index_list[0]] = -1     # reset flag
+    Set_SLC_Sel_state(BRAM, SLC_index_list[0], 1)
+    Set_MLC_Sel_state(BRAM, MLC_index_list[0], 0)
+    BRAM.Swap_Dict[SLC_index_list[0]] = MLC_index_list[0]
+    BRAM.Sel_Dict[MLC_index_list[0]] = SLC_index_list[0]
+    # write due to swap
+    BRAM_counter(BRAM,type.num_region + SLC_index_list[0]) # write back
+    return remapping_num
+
+
+
 def Memory_write(BRAM, Address):
     Port_Add_bit = len(Address)
     # format the address
@@ -183,7 +231,11 @@ def Memory_write(BRAM, Address):
     
     # find subblock
     subblock_address = Address[0:type.region_add_bit]
-    subblock_id = int(subblock_address,2)
+    tmp_id = subblock_id = int(subblock_address,2)
+    
+    if tmp_id in BRAM.Sel_Dict:
+        subblock_id = type.num_region + BRAM.Sel_Dict[tmp_id]
+        
     
     
     # find memory cell
@@ -209,9 +261,10 @@ def Memory_write(BRAM, Address):
     # Update_Write
     for tmp_i in range(0,Offset):
         BRAM.Counter_Cell_level[subblock_id][Base][tmp_i] += 1
-        if BRAM.Counter_Cell_level[subblock_id][Base][tmp_i] > type.Lifetime:
+        if subblock_id >= type.num_region and BRAM.Counter_Cell_level[subblock_id][Base][tmp_i] > type.SLC_Lifetime:
             return True # wear out
-
+        elif BRAM.Counter_Cell_level[subblock_id][Base][tmp_i] > type.MLC_Lifetime:
+            return True # wear out
     return False
 
 
@@ -260,7 +313,7 @@ def Sim_BRAM(Handle_BRAMS):
                             tmp_address += str(Handle_BRAMS.Dict[tmp_i].Add_2_input[Handle_BRAMS.Dict[tmp_i].Add2[tmp_j]][tmp_k])
                         FPGA_Wear_Flag = Memory_write(Handle_BRAMS.Dict[tmp_i],tmp_address)
                         if FPGA_Wear_Flag == True:
-                            return Write_Counter, Remapping_Counter
+                            return Write_Counter, Remapping_Counter, Trigger_Counter
                         tmp_add_freq = tmp_address[0:min(len(Handle_BRAMS.Dict[tmp_i].Add2),int(math.log2(type.num_region)))]
                         Sel_write = int(tmp_add_freq,2)
                         if  Sel_write in Handle_BRAMS.Dict[tmp_i].Sel_Dict:
@@ -280,91 +333,289 @@ def Sim_BRAM(Handle_BRAMS):
                                 Remapping_Counter += Remaping(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
 
 
-                    
+                  
+                  
+
+def Baseline(Handle_BRAMS):
+    Write_Counter = 0
+    Remapping_Counter = 0
+    Trigger_Counter = 0
+    FPGA_Wear_Flag = False
+    while(1):
+        Read_Act(Handle_BRAMS)
+        for tmp_k in range(0,5000):
+            Write_Counter += 1
+            for tmp_i in Handle_BRAMS.Dict:
+                # Port 1
+                if len(Handle_BRAMS.Dict[tmp_i].We1_input) != 0:
+                    if Handle_BRAMS.Dict[tmp_i].We1_input[tmp_k] == 1:
+                        tmp_address = ""
+                        for tmp_j in range(0,len(Handle_BRAMS.Dict[tmp_i].Add1)):
+                            tmp_address += str(Handle_BRAMS.Dict[tmp_i].Add_1_input[Handle_BRAMS.Dict[tmp_i].Add1[tmp_j]][tmp_k])
+                        FPGA_Wear_Flag = Memory_write(Handle_BRAMS.Dict[tmp_i],tmp_address)
+                        if FPGA_Wear_Flag == True:
+                            return Write_Counter, Remapping_Counter, Trigger_Counter
+                        # tmp_add_freq = tmp_address[0:min(len(Handle_BRAMS.Dict[tmp_i].Add1),int(math.log2(type.num_region)))]
+                        # Sel_write = int(tmp_add_freq,2)
+                        # if  Sel_write in Handle_BRAMS.Dict[tmp_i].Sel_Dict:
+                        #     num_current_slc = type.num_region + Handle_BRAMS.Dict[tmp_i].Sel_Dict[Sel_write]
+                        #     Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],num_current_slc)
+                        #     if Remapping_flag == True:
+                        #         Trigger_Counter += 1
+                        #         mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+                        #         slc_index_list, slc_cost_list = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i])
+                        #         Remapping_Counter += Remaping(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+                        # else:
+                        #     Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],Sel_write)
+                        #     if Remapping_flag == True:
+                        #         Trigger_Counter += 1
+                        #         mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+                        #         slc_index_list, slc_cost_list = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i])
+                        #         Remapping_Counter += Remaping(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+                # Port 2
+                if len(Handle_BRAMS.Dict[tmp_i].We2_input) != 0:
+                    if Handle_BRAMS.Dict[tmp_i].We2_input[tmp_k] == 1:
+                        tmp_address = ""
+                        for tmp_j in range(0,len(Handle_BRAMS.Dict[tmp_i].Add2)):
+                            tmp_address += str(Handle_BRAMS.Dict[tmp_i].Add_2_input[Handle_BRAMS.Dict[tmp_i].Add2[tmp_j]][tmp_k])
+                        FPGA_Wear_Flag = Memory_write(Handle_BRAMS.Dict[tmp_i],tmp_address)
+                        if FPGA_Wear_Flag == True:
+                            return Write_Counter, Remapping_Counter, Trigger_Counter
+                        # tmp_add_freq = tmp_address[0:min(len(Handle_BRAMS.Dict[tmp_i].Add2),int(math.log2(type.num_region)))]
+                        # Sel_write = int(tmp_add_freq,2)
+                        # if  Sel_write in Handle_BRAMS.Dict[tmp_i].Sel_Dict:
+                        #     num_current_slc = type.num_region + Handle_BRAMS.Dict[tmp_i].Sel_Dict[Sel_write]
+                        #     Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],num_current_slc)
+                        #     if Remapping_flag == True:
+                        #         Trigger_Counter += 1
+                        #         mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+                        #         slc_index_list, slc_cost_list = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i])
+                        #         Remapping_Counter += Remaping(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+                        # else:
+                        #     Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],Sel_write)
+                        #     if Remapping_flag == True:
+                        #         Trigger_Counter += 1
+                        #         mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+                        #         slc_index_list, slc_cost_list = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i])
+                        #         Remapping_Counter += Remaping(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+
+                  
+                  
 
 def Sim_BRAM_FIFO(Handle_BRAMS):
     Write_Counter = 0
     Remapping_Counter = 0
+    Trigger_Counter = 0
+    FPGA_Wear_Flag = False
     while(1):
         Read_Act(Handle_BRAMS)
         for tmp_k in range(0,5000):
             Write_Counter += 1
             for tmp_i in Handle_BRAMS.Dict:
-                if Handle_BRAMS.Dict[tmp_i].We1_input[tmp_k] == 1:
-                    tmp_str = ""
-                    for tmp_j in range(0,min(len(Handle_BRAMS.Dict[tmp_i].Add1),int(math.log2(type.num_region)))):
-                        # if Handle_BRAMS.Dict[tmp_i].Num_add_1 > int(math.log2(type.num_region)):
-                        tmp_str += str(Handle_BRAMS.Dict[tmp_i].Add_1_input[Handle_BRAMS.Dict[tmp_i].Add1[tmp_j]][tmp_k])
-                    Sel_write = int(tmp_str,2)
-                    if Sel_write == Handle_BRAMS.Dict[tmp_i].Current_sel:
-                        Handle_BRAMS.Dict[tmp_i].Counter[8] += 1
-                        # Wear Out
-                        if Handle_BRAMS.Dict[tmp_i].Counter[8] > Handle_BRAMS.Dict[tmp_i].Up_limit[8]:
-                            return Write_Counter, Remapping_Counter
-                    else:
-                        Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] += 1
-                        # Wear Out
-                        if Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] > Handle_BRAMS.Dict[tmp_i].Threshold[Sel_write]:
-                            # 
-                            Handle_BRAMS.Dict[tmp_i].Counter[Handle_BRAMS.Dict[tmp_i].Current_sel] += 1
-                            #
-                            Handle_BRAMS.Dict[tmp_i].Counter[8] += 1
+                # Port 1
+                if len(Handle_BRAMS.Dict[tmp_i].We1_input) != 0:
+                    if Handle_BRAMS.Dict[tmp_i].We1_input[tmp_k] == 1:
+                        tmp_address = ""
+                        for tmp_j in range(0,len(Handle_BRAMS.Dict[tmp_i].Add1)):
+                            tmp_address += str(Handle_BRAMS.Dict[tmp_i].Add_1_input[Handle_BRAMS.Dict[tmp_i].Add1[tmp_j]][tmp_k])
+                        FPGA_Wear_Flag = Memory_write(Handle_BRAMS.Dict[tmp_i],tmp_address)
+                        if FPGA_Wear_Flag == True:
+                            return Write_Counter, Remapping_Counter, Trigger_Counter
+                        tmp_add_freq = tmp_address[0:min(len(Handle_BRAMS.Dict[tmp_i].Add1),int(math.log2(type.num_region)))]
+                        Sel_write = int(tmp_add_freq,2)
+                        if  Sel_write in Handle_BRAMS.Dict[tmp_i].Sel_Dict:
+                            num_current_slc = type.num_region + Handle_BRAMS.Dict[tmp_i].Sel_Dict[Sel_write]
+                            Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],num_current_slc)
+                            if Remapping_flag == True:
+                                Trigger_Counter += 1
+                                mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+                                slc_index_list, slc_cost_list = Select_SLC_strategy_FIFO(Handle_BRAMS.Dict[tmp_i])
+                                Remapping_Counter += Remaping_FIFO(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+                        else:
+                            Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],Sel_write)
+                            if Remapping_flag == True:
+                                Trigger_Counter += 1
+                                mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+                                slc_index_list, slc_cost_list = Select_SLC_strategy_FIFO(Handle_BRAMS.Dict[tmp_i])
+                                Remapping_Counter += Remaping(Handle_BRAMS.Dict[tmp_i],slc_index_list[0], slc_cost_list[0], mlc_index_list[0], mlc_cost_list[0])
+                # Port 2
+                if len(Handle_BRAMS.Dict[tmp_i].We2_input) != 0:
+                    if Handle_BRAMS.Dict[tmp_i].We2_input[tmp_k] == 1:
+                        tmp_address = ""
+                        for tmp_j in range(0,len(Handle_BRAMS.Dict[tmp_i].Add2)):
+                            tmp_address += str(Handle_BRAMS.Dict[tmp_i].Add_2_input[Handle_BRAMS.Dict[tmp_i].Add2[tmp_j]][tmp_k])
+                        FPGA_Wear_Flag = Memory_write(Handle_BRAMS.Dict[tmp_i],tmp_address)
+                        if FPGA_Wear_Flag == True:
+                            return Write_Counter, Remapping_Counter, Trigger_Counter
+                        tmp_add_freq = tmp_address[0:min(len(Handle_BRAMS.Dict[tmp_i].Add2),int(math.log2(type.num_region)))]
+                        Sel_write = int(tmp_add_freq,2)
+                        if  Sel_write in Handle_BRAMS.Dict[tmp_i].Sel_Dict:
+                            num_current_slc = type.num_region + Handle_BRAMS.Dict[tmp_i].Sel_Dict[Sel_write]
+                            Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],num_current_slc)
+                            if Remapping_flag == True:
+                                Trigger_Counter += 1
+                                mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],1)
+                                slc_index_list, slc_cost_list = Select_SLC_strategy_FIFO(Handle_BRAMS.Dict[tmp_i])
+                                Remapping_Counter += Remaping_FIFO(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+                        else:
+                            Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],Sel_write)
+                            if Remapping_flag == True:
+                                Trigger_Counter += 1
+                                mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+                                slc_index_list, slc_cost_list = Select_SLC_strategy_FIFO(Handle_BRAMS.Dict[tmp_i])
+                                Remapping_Counter += Remaping_FIFO(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+
+
+             
+             
+             
+# def Sim_BRAM_FIFO(Handle_BRAMS):
+#     Write_Counter = 0
+#     Remapping_Counter = 0
+#     Trigger_Counter = 0
+#     FPGA_Wear_Flag = False
+#     while(1):
+#         Read_Act(Handle_BRAMS)
+#         for tmp_k in range(0,5000):
+#             Write_Counter += 1
+#             for tmp_i in Handle_BRAMS.Dict:
+#                 # Port 1
+#                 if len(Handle_BRAMS.Dict[tmp_i].We1_input) != 0:
+#                     if Handle_BRAMS.Dict[tmp_i].We1_input[tmp_k] == 1:
+#                         tmp_address = ""
+#                         for tmp_j in range(0,len(Handle_BRAMS.Dict[tmp_i].Add1)):
+#                             tmp_address += str(Handle_BRAMS.Dict[tmp_i].Add_1_input[Handle_BRAMS.Dict[tmp_i].Add1[tmp_j]][tmp_k])
+#                         FPGA_Wear_Flag = Memory_write(Handle_BRAMS.Dict[tmp_i],tmp_address)
+#                         if FPGA_Wear_Flag == True:
+#                             return Write_Counter, Remapping_Counter, Trigger_Counter
+#                         tmp_add_freq = tmp_address[0:min(len(Handle_BRAMS.Dict[tmp_i].Add1),int(math.log2(type.num_region)))]
+#                         Sel_write = int(tmp_add_freq,2)
+#                         if  Sel_write in Handle_BRAMS.Dict[tmp_i].Sel_Dict:
+#                             num_current_slc = type.num_region + Handle_BRAMS.Dict[tmp_i].Sel_Dict[Sel_write]
+#                             Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],num_current_slc)
+#                             if Remapping_flag == True:
+#                                 Trigger_Counter += 1
+#                                 mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+#                                 slc_index_list, slc_cost_list = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i])
+#                                 Remapping_Counter += Remaping(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+#                         else:
+#                             Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],Sel_write)
+#                             if Remapping_flag == True:
+#                                 Trigger_Counter += 1
+#                                 mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+#                                 slc_index_list, slc_cost_list = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i])
+#                                 Remapping_Counter += Remaping(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+#                 # Port 2
+#                 if len(Handle_BRAMS.Dict[tmp_i].We2_input) != 0:
+#                     if Handle_BRAMS.Dict[tmp_i].We2_input[tmp_k] == 1:
+#                         tmp_address = ""
+#                         for tmp_j in range(0,len(Handle_BRAMS.Dict[tmp_i].Add2)):
+#                             tmp_address += str(Handle_BRAMS.Dict[tmp_i].Add_2_input[Handle_BRAMS.Dict[tmp_i].Add2[tmp_j]][tmp_k])
+#                         FPGA_Wear_Flag = Memory_write(Handle_BRAMS.Dict[tmp_i],tmp_address)
+#                         if FPGA_Wear_Flag == True:
+#                             return Write_Counter, Remapping_Counter, Trigger_Counter
+#                         tmp_add_freq = tmp_address[0:min(len(Handle_BRAMS.Dict[tmp_i].Add2),int(math.log2(type.num_region)))]
+#                         Sel_write = int(tmp_add_freq,2)
+#                         if  Sel_write in Handle_BRAMS.Dict[tmp_i].Sel_Dict:
+#                             num_current_slc = type.num_region + Handle_BRAMS.Dict[tmp_i].Sel_Dict[Sel_write]
+#                             Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],num_current_slc)
+#                             if Remapping_flag == True:
+#                                 Trigger_Counter += 1
+#                                 mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+#                                 slc_index_list, slc_cost_list = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i])
+#                                 Remapping_Counter += Remaping(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+#                         else:
+#                             Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],Sel_write)
+#                             if Remapping_flag == True:
+#                                 Trigger_Counter += 1
+#                                 mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+#                                 slc_index_list, slc_cost_list = Select_SLC_strategy(Handle_BRAMS.Dict[tmp_i])
+#                                 Remapping_Counter += Remaping(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+       
+
+# def Sim_BRAM_FIFO(Handle_BRAMS):
+#     Write_Counter = 0
+#     Remapping_Counter = 0
+#     while(1):
+#         Read_Act(Handle_BRAMS)
+#         for tmp_k in range(0,5000):
+#             Write_Counter += 1
+#             for tmp_i in Handle_BRAMS.Dict:
+#                 if Handle_BRAMS.Dict[tmp_i].We1_input[tmp_k] == 1:
+#                     tmp_str = ""
+#                     for tmp_j in range(0,min(len(Handle_BRAMS.Dict[tmp_i].Add1),int(math.log2(type.num_region)))):
+#                         # if Handle_BRAMS.Dict[tmp_i].Num_add_1 > int(math.log2(type.num_region)):
+#                         tmp_str += str(Handle_BRAMS.Dict[tmp_i].Add_1_input[Handle_BRAMS.Dict[tmp_i].Add1[tmp_j]][tmp_k])
+#                     Sel_write = int(tmp_str,2)
+#                     if Sel_write == Handle_BRAMS.Dict[tmp_i].Current_sel:
+#                         Handle_BRAMS.Dict[tmp_i].Counter[8] += 1
+#                         # Wear Out
+#                         if Handle_BRAMS.Dict[tmp_i].Counter[8] > Handle_BRAMS.Dict[tmp_i].Up_limit[8]:
+#                             return Write_Counter, Remapping_Counter
+#                     else:
+#                         Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] += 1
+#                         # Wear Out
+#                         if Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] > Handle_BRAMS.Dict[tmp_i].Threshold[Sel_write]:
+#                             # 
+#                             Handle_BRAMS.Dict[tmp_i].Counter[Handle_BRAMS.Dict[tmp_i].Current_sel] += 1
+#                             #
+#                             Handle_BRAMS.Dict[tmp_i].Counter[8] += 1
                             
                             
-                            Handle_BRAMS.Dict[tmp_i].Current_sel = Sel_write
-                            Remapping_Counter += 1
-                        if Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] > Handle_BRAMS.Dict[tmp_i].Up_limit[Sel_write]:
-                            return Write_Counter, Remapping_Counter
-                if Handle_BRAMS.Dict[tmp_i].Mode.find("sp") == -1:
-                    if Handle_BRAMS.Dict[tmp_i].We2_input[tmp_k] == 1:
-                        tmp_str = ""
-                        for tmp_j in range(0,min(len(Handle_BRAMS.Dict[tmp_i].Add1),int(math.log2(type.num_region)))):
-                            if Handle_BRAMS.Dict[tmp_i].Num_add_2 > int(math.log2(type.num_region)):
-                                tmp_str += str(Handle_BRAMS.Dict[tmp_i].Add_2_input[Handle_BRAMS.Dict[tmp_i].Add2[tmp_j]][tmp_k])
-                        Sel_write = int(tmp_str,2)
-                        if Sel_write == Handle_BRAMS.Dict[tmp_i].Current_sel:
-                            Handle_BRAMS.Dict[tmp_i].Counter[8] += 1
-                        else:
-                            Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] += 1
-                            if Handle_BRAMS.Dict[tmp_i].Current_sel != -1:
-                                Handle_BRAMS.Dict[tmp_i].Freq_counter[Sel_write] += 1 
+#                             Handle_BRAMS.Dict[tmp_i].Current_sel = Sel_write
+#                             Remapping_Counter += 1
+#                         if Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] > Handle_BRAMS.Dict[tmp_i].Up_limit[Sel_write]:
+#                             return Write_Counter, Remapping_Counter
+#                 if Handle_BRAMS.Dict[tmp_i].Mode.find("sp") == -1:
+#                     if Handle_BRAMS.Dict[tmp_i].We2_input[tmp_k] == 1:
+#                         tmp_str = ""
+#                         for tmp_j in range(0,min(len(Handle_BRAMS.Dict[tmp_i].Add1),int(math.log2(type.num_region)))):
+#                             if Handle_BRAMS.Dict[tmp_i].Num_add_2 > int(math.log2(type.num_region)):
+#                                 tmp_str += str(Handle_BRAMS.Dict[tmp_i].Add_2_input[Handle_BRAMS.Dict[tmp_i].Add2[tmp_j]][tmp_k])
+#                         Sel_write = int(tmp_str,2)
+#                         if Sel_write == Handle_BRAMS.Dict[tmp_i].Current_sel:
+#                             Handle_BRAMS.Dict[tmp_i].Counter[8] += 1
+#                         else:
+#                             Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] += 1
+#                             if Handle_BRAMS.Dict[tmp_i].Current_sel != -1:
+#                                 Handle_BRAMS.Dict[tmp_i].Freq_counter[Sel_write] += 1 
 
 
 
-def Sim_BRAM_Non(Handle_BRAMS):
-    Write_Counter = 0
-    Remapping_Counter = 0    
-    while(1):
-        Read_Act(Handle_BRAMS)
-        for tmp_k in range(0,5000):
-            Write_Counter += 1
-            for tmp_i in Handle_BRAMS.Dict:
-                if Handle_BRAMS.Dict[tmp_i].We1_input[tmp_k] == 1:
-                    tmp_str = ""
-                    for tmp_j in range(0,min(len(Handle_BRAMS.Dict[tmp_i].Add1),int(math.log2(type.num_region)))):
-                        # if Handle_BRAMS.Dict[tmp_i].Num_add_1 > int(math.log2(type.num_region)):
-                        tmp_str += str(Handle_BRAMS.Dict[tmp_i].Add_1_input[Handle_BRAMS.Dict[tmp_i].Add1[tmp_j]][tmp_k])
-                    Sel_write = int(tmp_str,2)
-                    if Sel_write == Handle_BRAMS.Dict[tmp_i].Current_sel:
-                        Handle_BRAMS.Dict[tmp_i].Counter[8] += 1
-                        # Wear Out
-                        if Handle_BRAMS.Dict[tmp_i].Counter[8] > Handle_BRAMS.Dict[tmp_i].Up_limit[8]:
-                            return Write_Counter,Remapping_Counter
-                    else:
-                        Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] += 1
-                        # Wear Out
-                        if Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] > Handle_BRAMS.Dict[tmp_i].Up_limit[Sel_write]:
-                            return Write_Counter,Remapping_Counter
-                if Handle_BRAMS.Dict[tmp_i].Mode.find("sp") == -1:
-                    if Handle_BRAMS.Dict[tmp_i].We2_input[tmp_k] == 1:
-                        tmp_str = ""
-                        for tmp_j in range(0,min(len(Handle_BRAMS.Dict[tmp_i].Add1),int(math.log2(type.num_region)))):
-                            if Handle_BRAMS.Dict[tmp_i].Num_add_2 > int(math.log2(type.num_region)):
-                                tmp_str += str(Handle_BRAMS.Dict[tmp_i].Add_2_input[Handle_BRAMS.Dict[tmp_i].Add2[tmp_j]][tmp_k])
-                        Sel_write = int(tmp_str,2)
-                        if Sel_write == Handle_BRAMS.Dict[tmp_i].Current_sel:
-                            Handle_BRAMS.Dict[tmp_i].Counter[8] += 1
-                        else:
-                            Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] += 1
-                            if Handle_BRAMS.Dict[tmp_i].Current_sel != -1:
-                                Handle_BRAMS.Dict[tmp_i].Freq_counter[Sel_write] += 1 
+# def Sim_BRAM_Non(Handle_BRAMS):
+#     Write_Counter = 0
+#     Remapping_Counter = 0    
+#     while(1):
+#         Read_Act(Handle_BRAMS)
+#         for tmp_k in range(0,5000):
+#             Write_Counter += 1
+#             for tmp_i in Handle_BRAMS.Dict:
+#                 if Handle_BRAMS.Dict[tmp_i].We1_input[tmp_k] == 1:
+#                     tmp_str = ""
+#                     for tmp_j in range(0,min(len(Handle_BRAMS.Dict[tmp_i].Add1),int(math.log2(type.num_region)))):
+#                         # if Handle_BRAMS.Dict[tmp_i].Num_add_1 > int(math.log2(type.num_region)):
+#                         tmp_str += str(Handle_BRAMS.Dict[tmp_i].Add_1_input[Handle_BRAMS.Dict[tmp_i].Add1[tmp_j]][tmp_k])
+#                     Sel_write = int(tmp_str,2)
+#                     if Sel_write == Handle_BRAMS.Dict[tmp_i].Current_sel:
+#                         Handle_BRAMS.Dict[tmp_i].Counter[8] += 1
+#                         # Wear Out
+#                         if Handle_BRAMS.Dict[tmp_i].Counter[8] > Handle_BRAMS.Dict[tmp_i].Up_limit[8]:
+#                             return Write_Counter,Remapping_Counter
+#                     else:
+#                         Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] += 1
+#                         # Wear Out
+#                         if Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] > Handle_BRAMS.Dict[tmp_i].Up_limit[Sel_write]:
+#                             return Write_Counter,Remapping_Counter
+#                 if Handle_BRAMS.Dict[tmp_i].Mode.find("sp") == -1:
+#                     if Handle_BRAMS.Dict[tmp_i].We2_input[tmp_k] == 1:
+#                         tmp_str = ""
+#                         for tmp_j in range(0,min(len(Handle_BRAMS.Dict[tmp_i].Add1),int(math.log2(type.num_region)))):
+#                             if Handle_BRAMS.Dict[tmp_i].Num_add_2 > int(math.log2(type.num_region)):
+#                                 tmp_str += str(Handle_BRAMS.Dict[tmp_i].Add_2_input[Handle_BRAMS.Dict[tmp_i].Add2[tmp_j]][tmp_k])
+#                         Sel_write = int(tmp_str,2)
+#                         if Sel_write == Handle_BRAMS.Dict[tmp_i].Current_sel:
+#                             Handle_BRAMS.Dict[tmp_i].Counter[8] += 1
+#                         else:
+#                             Handle_BRAMS.Dict[tmp_i].Counter[Sel_write] += 1
+#                             if Handle_BRAMS.Dict[tmp_i].Current_sel != -1:
+#                                 Handle_BRAMS.Dict[tmp_i].Freq_counter[Sel_write] += 1 

@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-28 07:10:41
-LastEditTime: 2022-03-10 03:07:35
+LastEditTime: 2022-03-22 03:30:18
 LastEditors: Please set LastEditors
 Description: Read the logical BRAM instance
 FilePath: /Aurora/read_circuit.py
@@ -46,7 +46,7 @@ def Parse4BRAMINF(Path_of_circuit, Handle_BRAMS):
     Handle_BRAMS._init_()
 
     for child_node_l_1 in level_1:
-        # find node with tpye is memory.  
+        # find node with type is memory.  
         if child_node_l_1.attrib.get("instance").find("memory[") != -1:
             Name = child_node_l_1.attrib.get("name")
             Instance = child_node_l_1.attrib.get("instance")
