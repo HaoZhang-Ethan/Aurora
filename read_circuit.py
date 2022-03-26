@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-28 07:10:41
-LastEditTime: 2022-03-22 03:30:18
+LastEditTime: 2022-03-26 07:47:32
 LastEditors: Please set LastEditors
 Description: Read the logical BRAM instance
 FilePath: /Aurora/read_circuit.py
@@ -57,8 +57,8 @@ def Parse4BRAMINF(Path_of_circuit, Handle_BRAMS):
             # level_3 port_0:addr1 port_1:addr2     port_2:data     port_3:we1   port_4:we2 
             Addr1_List = level_3[0].text.replace(Replace_key_word_0,"").replace(Replace_key_word_1,"").replace(Replace_key_word_2,"").split();
             Addr2_List = level_3[1].text.replace(Replace_key_word_0,"").replace(Replace_key_word_1,"").replace(Replace_key_word_2,"").split();
-            We1 = level_3[3].text;
-            We2 = level_3[4].text;
+            We1 = level_3[3].text.replace(" ", "");
+            We2 = level_3[4].text.replace(" ", "");
             if (We1 != "gnd") and (We1 != "open") and (len(Addr1_List) != 0) :
                 # Writer.write(We1+"\n");
                 Writer_Set.add(We1)

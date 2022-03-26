@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 04:08:23
-LastEditTime: 2022-03-22 08:45:41
+LastEditTime: 2022-03-26 07:54:58
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/type.py
@@ -27,7 +27,7 @@ subblock_col = organize_mem_col
 
 
 MLC_Lifetime = math.pow(10,5)
-SLC_Lifetime = math.pow(10,5)
+SLC_Lifetime = math.pow(10,8)
 Counter_bit = math.ceil(math.log2(MLC_Lifetime))
 if Counter_bit <=5:
     print("Place increase the MLC_Lifetime of NVM")
@@ -103,5 +103,6 @@ class BRAMS:
     def _init_(self):
         self.Dict = dict()
         self.cycle = 0
+        self.has_act_file = 0
         
 

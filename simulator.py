@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 04:08:23
-LastEditTime: 2022-03-22 09:03:37
+LastEditTime: 2022-03-26 07:54:18
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/type.py
@@ -11,7 +11,7 @@ FilePath: /Aurora/type.py
 import random
 import math
 import type
-
+import os
 
 
 def Init_Sim_BRAM(Handle_BRAMS,Path_of_circuit_place):
@@ -39,7 +39,14 @@ def Get_we_freq(We2_freq_list):
     else:
         return 0
 
+
+
+        
+
+
 def Read_Act(Handle_BRAMS):
+    if Handle_BRAMS.has_act_file == 1:
+        return 1
     for tmp_i in Handle_BRAMS.Dict:
         # single port BRAM
         if Handle_BRAMS.Dict[tmp_i].Mode.find("sp") != -1:
@@ -133,7 +140,7 @@ def Set_MLC_Sel_state(BRAM,Choose_MLC,state):
     BRAM.MLC_State[Choose_MLC] = state
 
 def Select_MLC_strategy(BRAM,Threshold):
-    Max_freq = max(BRAM.Freq_counter)
+    Max_freq = max(BRAM.Freq_counter[0:type.num_region])
     T_select = Threshold*Max_freq
     tmp_dict = dict()
     for tmp_i in range(0,type.num_region):
@@ -201,21 +208,21 @@ def FIFO_Priority_update(BRAM,SLC_id):
 def Remaping_FIFO(BRAM, SLC_index_list, SLC_cost_list, MLC_index_list, MLC_cost_list):
     remapping_num = 0
     BRAM.Freq_counter = [0 for i in range (type.num_region+type.swap_region)]
-    FIFO_Priority_update(BRAM,SLC_index_list[0])
+    FIFO_Priority_update(BRAM,SLC_index_list)
     remapping_num += 1
-    if BRAM.SLC_State[SLC_index_list[0]] == 1: # if the SLC is used
-        last_value = BRAM.Swap_Dict[SLC_index_list[0]]
+    if BRAM.SLC_State[SLC_index_list] == 1: # if the SLC is used
+        last_value = BRAM.Swap_Dict[SLC_index_list]
         Set_MLC_Sel_state(BRAM, last_value, 1)
         BRAM_counter(BRAM,last_value) # write back
         del BRAM.Sel_Dict[last_value]   # del relationship
-        Set_SLC_Sel_state(BRAM,SLC_index_list[0],0)   # reset flag
-        BRAM.Swap_Dict[SLC_index_list[0]] = -1     # reset flag
-    Set_SLC_Sel_state(BRAM, SLC_index_list[0], 1)
-    Set_MLC_Sel_state(BRAM, MLC_index_list[0], 0)
-    BRAM.Swap_Dict[SLC_index_list[0]] = MLC_index_list[0]
-    BRAM.Sel_Dict[MLC_index_list[0]] = SLC_index_list[0]
+        Set_SLC_Sel_state(BRAM,SLC_index_list,0)   # reset flag
+        BRAM.Swap_Dict[SLC_index_list] = -1     # reset flag
+    Set_SLC_Sel_state(BRAM, SLC_index_list, 1)
+    Set_MLC_Sel_state(BRAM, MLC_index_list, 0)
+    BRAM.Swap_Dict[SLC_index_list] = MLC_index_list
+    BRAM.Sel_Dict[MLC_index_list] = SLC_index_list
     # write due to swap
-    BRAM_counter(BRAM,type.num_region + SLC_index_list[0]) # write back
+    BRAM_counter(BRAM,type.num_region + SLC_index_list) # write back
     return remapping_num
 
 
@@ -428,16 +435,16 @@ def Sim_BRAM_FIFO(Handle_BRAMS):
                             Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],num_current_slc)
                             if Remapping_flag == True:
                                 Trigger_Counter += 1
-                                mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+                                mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],1)
                                 slc_index_list, slc_cost_list = Select_SLC_strategy_FIFO(Handle_BRAMS.Dict[tmp_i])
-                                Remapping_Counter += Remaping_FIFO(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+                                Remapping_Counter += Remaping_FIFO(Handle_BRAMS.Dict[tmp_i],slc_index_list[0], slc_cost_list[0], mlc_index_list[0], mlc_cost_list[0])
                         else:
                             Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],Sel_write)
                             if Remapping_flag == True:
                                 Trigger_Counter += 1
-                                mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
+                                mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],1)
                                 slc_index_list, slc_cost_list = Select_SLC_strategy_FIFO(Handle_BRAMS.Dict[tmp_i])
-                                Remapping_Counter += Remaping(Handle_BRAMS.Dict[tmp_i],slc_index_list[0], slc_cost_list[0], mlc_index_list[0], mlc_cost_list[0])
+                                Remapping_Counter += Remaping_FIFO(Handle_BRAMS.Dict[tmp_i],slc_index_list[0], slc_cost_list[0], mlc_index_list[0], mlc_cost_list[0])
                 # Port 2
                 if len(Handle_BRAMS.Dict[tmp_i].We2_input) != 0:
                     if Handle_BRAMS.Dict[tmp_i].We2_input[tmp_k] == 1:
@@ -456,14 +463,14 @@ def Sim_BRAM_FIFO(Handle_BRAMS):
                                 Trigger_Counter += 1
                                 mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],1)
                                 slc_index_list, slc_cost_list = Select_SLC_strategy_FIFO(Handle_BRAMS.Dict[tmp_i])
-                                Remapping_Counter += Remaping_FIFO(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+                                Remapping_Counter += Remaping_FIFO(Handle_BRAMS.Dict[tmp_i],slc_index_list[0], slc_cost_list[0], mlc_index_list[0], mlc_cost_list[0])
                         else:
                             Remapping_flag = BRAM_counter(Handle_BRAMS.Dict[tmp_i],Sel_write)
                             if Remapping_flag == True:
                                 Trigger_Counter += 1
                                 mlc_index_list, mlc_cost_list = Select_MLC_strategy(Handle_BRAMS.Dict[tmp_i],0.75)
                                 slc_index_list, slc_cost_list = Select_SLC_strategy_FIFO(Handle_BRAMS.Dict[tmp_i])
-                                Remapping_Counter += Remaping_FIFO(Handle_BRAMS.Dict[tmp_i],slc_index_list, slc_cost_list, mlc_index_list, mlc_cost_list)
+                                Remapping_Counter += Remaping_FIFO(Handle_BRAMS.Dict[tmp_i],slc_index_list[0], slc_cost_list[0], mlc_index_list[0], mlc_cost_list[0])
 
 
              

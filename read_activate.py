@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 06:50:08
-LastEditTime: 2022-01-02 02:48:04
+LastEditTime: 2022-03-26 03:50:58
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/read_activate.py
@@ -47,7 +47,6 @@ def Parse4ACT(Path_of_circuit, Handle_BRAMS):
 
 def Parse4PinACT(Path_of_circuit, Handle_BRAMS):
     Path_of_circuit = Path_of_circuit
-    
     Act_dict = dict()
     with open(Path_of_circuit,"r") as File:
         All_Line = File.readlines()
