@@ -1,7 +1,7 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-29 04:08:23
-LastEditTime: 2022-03-26 07:54:18
+LastEditTime: 2022-03-26 10:24:27
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/type.py
@@ -12,6 +12,9 @@ import random
 import math
 import type
 import os
+
+
+
 
 
 def Init_Sim_BRAM(Handle_BRAMS,Path_of_circuit_place):
@@ -269,8 +272,10 @@ def Memory_write(BRAM, Address):
     for tmp_i in range(0,Offset):
         BRAM.Counter_Cell_level[subblock_id][Base][tmp_i] += 1
         if subblock_id >= type.num_region and BRAM.Counter_Cell_level[subblock_id][Base][tmp_i] > type.SLC_Lifetime:
+            print(" Wear Out     SLC     Region:"+str(subblock_id) + "\n")
             return True # wear out
-        elif BRAM.Counter_Cell_level[subblock_id][Base][tmp_i] > type.MLC_Lifetime:
+        elif subblock_id < type.num_region and BRAM.Counter_Cell_level[subblock_id][Base][tmp_i] > type.MLC_Lifetime:
+            print(" Wear Out     MLC     Region:"+str(subblock_id) + "\n")
             return True # wear out
     return False
 

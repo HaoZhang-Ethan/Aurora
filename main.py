@@ -1,11 +1,12 @@
 '''
 Author: HaoZhang-Hoge@SDU
 Date: 2021-12-28 07:10:41
-LastEditTime: 2022-03-26 08:26:29
+LastEditTime: 2022-03-26 09:50:13
 LastEditors: Please set LastEditors
 Description: 
 FilePath: /Aurora/main.py
 '''
+import imp
 from multiprocessing import Condition
 import read_circuit
 import read_activate
@@ -13,17 +14,19 @@ import simulator
 import type
 import os
 
-
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 Benchmark_path = os.getcwd() + "/Benchmark"
 Root_path = os.getcwd()
 # circuit_name = [tmp.replace(".v", "") for tmp in os.listdir(Benchmark_path)]
 
-error = [2,3,5]
+error = []
 tasks = [5]
 circuit_name = ["ch_intrinsics", "LU8PEEng", "mkDelayWorker32B", "mkPktMerge", "mkSMAdapter4B", "or1200", "LU32PEEng"]
-magnification = [200, 10, 10, 10, 10, 900, 100]
+magnification = [200, 10, 10, 100, 10, 900, 100]
 use_odin = [1,1,0,0,1,0,1]
 
 Strategy = ["Baseline","Our","FIFO"]
@@ -109,6 +112,23 @@ def Set_BRAM_amp(Handle_BRAMS,amp):
     for tmp_i in Handle_BRAMS.Dict:
         Handle_BRAMS.Dict[tmp_i].amp = amp
 
+def plot_heatmap(path,Handle_BRAMS):
+    for tmp_i in Handle_BRAMS.Dict:
+        plt.clf()
+        sns.set()
+        my_plt = np.zeros(((type.num_region + type.swap_region)*type.subblock_row,type.subblock_col), float)
+        tmp_row = 0
+        for tmp_region in range(0,(type.num_region + type.swap_region)):
+            if tmp_region < type.num_region:
+                tmp_Lifetime = type.MLC_Lifetime
+            else:
+                tmp_Lifetime = type.SLC_Lifetime
+            for tmp__row in range(0,type.subblock_row):
+                for tmp__col in range(0,type.subblock_col):
+                    my_plt[tmp_row][tmp__col] = (Handle_BRAMS.Dict[tmp_i].Counter_Cell_level[tmp_region][tmp__row][tmp__col]/tmp_Lifetime)
+                tmp_row += 1
+        ax = sns.heatmap(my_plt, vmin=0, vmax=1)
+        plt.savefig(path + tmp_i + ".png",dpi=500)
 
 for cur_tasks in tasks:
     cur_circuit = circuit_name[cur_tasks]
@@ -118,6 +138,8 @@ for cur_tasks in tasks:
     Path_of_circuit_act = Path_of_circuit + "output_activity"
     Path_of_circuit_pin_act = Path_of_circuit  + cur_circuit + "_BRAMPin.txt"
     Path_of_circuit_place = Path_of_circuit + cur_circuit + ".place"
+    Path_of_circuit_ace = Path_of_circuit + "act/0.ace"
+    Path_of_circuit_heat_map = Path_of_circuit + "results/"
     if my_exists(Path_of_circuit_net):
         Handle_BRAMS = type.BRAMS()
         read_circuit.Parse4BRAMINF(Path_of_circuit_net, Handle_BRAMS)
@@ -129,7 +151,8 @@ for cur_tasks in tasks:
             read_activate.Parse4ACT(Path_of_circuit_act, Handle_BRAMS)
             print("---------Parse4ACT OK---------")
         else:
-            get_Act_from_file("/home/zhlab/Aurora/Benchmark/or1200.v/common/act/0.ace",Handle_BRAMS)
+            get_Act_from_file(Path_of_circuit_ace,Handle_BRAMS)
+            print("---------Parse4ACT OK---------")
         # if my_exists(Path_of_circuit_pin_act) is True: # For some circuits, Init_Gen_ACT() fail to run.
         #     read_activate.Parse4PinACT(Path_of_circuit_pin_act, Handle_BRAMS)
         #     print("---------Parse4ACT OK---------")
@@ -145,6 +168,7 @@ for cur_tasks in tasks:
         # Lifetime,Swap_num = simulator.Sim_BRAM_FIFO(Handle_BRAMS)
         # Lifetime,Swap_num = simulator.Sim_BRAM_Non(Handle_BRAMS)
         print("Lifetime = " + str(Lifetime) + "\t" + "Remap_num = " + str(Remapping_num) + "\t Trigging_num = " + str(Trigger_num) + "\n")
+        plot_heatmap(Path_of_circuit_heat_map, Handle_BRAMS)
         print("\n")
 
 pass
